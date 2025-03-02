@@ -1,11 +1,16 @@
 import React, { useEffect } from 'react';
 import AppNavigator from './AppNavigator';
-import { requestNotificationPermissions } from './utils/notifications';
+import { requestNotificationPermissions, restoreNotifications } from './utils/notifications';
+import { loadTasks } from './utils/storage';
 
 const App = () => {
   useEffect(() => {
-    // Demander les permissions au démarrage
-    requestNotificationPermissions();
+    const initializeApp = async () => {
+      await requestNotificationPermissions();
+      const tasks = await loadTasks();
+      await restoreNotifications(tasks);
+    };
+    initializeApp();
   }, []);
 
   return <AppNavigator />;

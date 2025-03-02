@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { loadTasks, saveTasks } from '../utils/storage';
 import { useNavigation } from '@react-navigation/native';
-import { scheduleNotification } from '../utils/notifications';
+import { scheduleNotification, cancelTaskNotifications } from '../utils/notifications';
 
 const HomeScreen = ({ route }) => {
   const [tasks, setTasks] = useState([]);
@@ -24,7 +24,6 @@ const HomeScreen = ({ route }) => {
       const storedTasks = await loadTasks();
       setTasks(storedTasks);
 
-      // Planifier des notifications pour les tâches existantes
       storedTasks.forEach((task) => {
         if (task.dueDate && task.status !== 'completed') {
           scheduleNotification(task);
@@ -46,21 +45,25 @@ const HomeScreen = ({ route }) => {
       );
       setTasks(updatedTasks);
       saveTasks(updatedTasks);
-      // Re-planifier la notification si la tâche est mise à jour
       if (route.params.updatedTask.dueDate && route.params.updatedTask.status !== 'completed') {
         scheduleNotification(route.params.updatedTask);
       }
     }
   }, [route.params?.newTask, route.params?.updatedTask]);
 
-  const toggleTaskCompletion = (taskId) => {
+  const toggleTaskCompletion = async (taskId) => {
     const updatedTasks = tasks.map((task) =>
       task.id === taskId
         ? { ...task, status: task.status === 'completed' ? 'in_progress' : 'completed' }
         : task
     );
     setTasks(updatedTasks);
-    saveTasks(updatedTasks);
+    await saveTasks(updatedTasks);
+
+    const updatedTask = updatedTasks.find((task) => task.id === taskId);
+    if (updatedTask.status === 'completed') {
+      await cancelTaskNotifications(taskId);
+    }
   };
 
   const deleteTask = (taskId) => {
@@ -72,10 +75,11 @@ const HomeScreen = ({ route }) => {
         {
           text: 'Supprimer',
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             const updatedTasks = tasks.filter((task) => task.id !== taskId);
             setTasks(updatedTasks);
-            saveTasks(updatedTasks);
+            await saveTasks(updatedTasks);
+            await cancelTaskNotifications(taskId);
           },
         },
       ]

@@ -1,8 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-// Configurer le gestionnaire de notifications
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
@@ -11,7 +11,8 @@ Notifications.setNotificationHandler({
   }),
 });
 
-// Demander les permissions pour les notifications
+const NOTIFICATIONS_STORAGE_KEY = '@scheduled_notifications';
+
 export async function requestNotificationPermissions() {
   if (!Device.isDevice) {
     console.log("Les notifications ne fonctionnent que sur un appareil physique.");
@@ -43,57 +44,99 @@ export async function requestNotificationPermissions() {
   return true;
 }
 
-// Planifier une notification basée sur la priorité et le délai
 export async function scheduleNotification(task) {
-  const { title, priority, dueDate, status } = task;
+  const { id, title, priority, dueDate, status } = task;
 
-  // 1. Notification basée sur la priorité (immédiate ou rapide)
   let priorityDelay;
   switch (priority) {
     case 'high':
-      priorityDelay = 2; // 2 secondes pour priorité élevée
+      priorityDelay = 2;
       break;
     case 'medium':
-      priorityDelay = 10; // 10 secondes pour priorité moyenne
+      priorityDelay = 10;
       break;
     case 'low':
-      priorityDelay = 30; // 30 secondes pour priorité basse
+      priorityDelay = 30;
       break;
     default:
       priorityDelay = 10;
   }
 
-  await Notifications.scheduleNotificationAsync({
+  const priorityNotification = await Notifications.scheduleNotificationAsync({
     content: {
       title: 'Nouvelle tâche ajoutée',
       body: `Tâche "${title}" (${priority}) ajoutée !`,
       sound: 'default',
+      data: { taskId: id },
     },
     trigger: { seconds: priorityDelay },
   });
 
-  // 2. Notification de rappel basée sur dueDate (si non terminée)
+  let scheduledNotifications = [];
   if (dueDate && status !== 'completed') {
     const dueDateTime = new Date(dueDate);
     const now = new Date();
-    const timeUntilDue = dueDateTime - now;
 
-    // Planifier un rappel 1 heure avant l'échéance (ou ajuster selon tes besoins)
-    const reminderTime = new Date(dueDateTime.getTime() - 60 * 60 * 1000); // 1 heure avant
-    if (reminderTime > now) {
-      await Notifications.scheduleNotificationAsync({
+    const oneDayBefore = new Date(dueDateTime.getTime() - 24 * 60 * 60 * 1000);
+    if (oneDayBefore > now) {
+      const oneDayNotif = await Notifications.scheduleNotificationAsync({
+        content: {
+          title: 'Rappel : 1 jour restant',
+          body: `La tâche "${title}" est due le ${dueDateTime.toLocaleString()}.`,
+          sound: 'default',
+          data: { taskId: id },
+        },
+        trigger: oneDayBefore,
+      });
+      scheduledNotifications.push({ id: oneDayNotif, taskId: id });
+    }
+
+    const oneHourBefore = new Date(dueDateTime.getTime() - 60 * 60 * 1000);
+    if (oneHourBefore > now) {
+      const oneHourNotif = await Notifications.scheduleNotificationAsync({
         content: {
           title: 'Délai approche !',
-          body: `La tâche "${title}" est due le ${dueDateTime.toLocaleDateString()} et n'est pas encore terminée.`,
+          body: `La tâche "${title}" est due dans 1 heure (${dueDateTime.toLocaleString()}).`,
           sound: 'default',
+          data: { taskId: id },
         },
-        trigger: reminderTime,
+        trigger: oneHourBefore,
       });
+      scheduledNotifications.push({ id: oneHourNotif, taskId: id });
     }
+  }
+
+  const existingNotifs = await AsyncStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
+  const notifs = existingNotifs ? JSON.parse(existingNotifs) : [];
+  await AsyncStorage.setItem(
+    NOTIFICATIONS_STORAGE_KEY,
+    JSON.stringify([...notifs, ...scheduledNotifications])
+  );
+}
+
+export async function cancelTaskNotifications(taskId) {
+  const scheduledNotifications = await Notifications.getAllScheduledNotificationsAsync();
+  const taskNotifications = scheduledNotifications.filter(
+    (notif) => notif.content.data?.taskId === taskId
+  );
+  for (const notif of taskNotifications) {
+    await Notifications.cancelScheduledNotificationAsync(notif.identifier);
+  }
+
+  const existingNotifs = await AsyncStorage.getItem(NOTIFICATIONS_STORAGE_KEY);
+  if (existingNotifs) {
+    const notifs = JSON.parse(existingNotifs).filter((n) => n.taskId !== taskId);
+    await AsyncStorage.setItem(NOTIFICATIONS_STORAGE_KEY, JSON.stringify(notifs));
   }
 }
 
-// Annuler toutes les notifications (optionnel, pour débogage)
-export async function cancelAllNotifications() {
+export async function restoreNotifications(tasks) {
   await Notifications.cancelAllScheduledNotificationsAsync();
+  await AsyncStorage.removeItem(NOTIFICATIONS_STORAGE_KEY);
+
+  tasks.forEach((task) => {
+    if (task.dueDate && task.status !== 'completed') {
+      scheduleNotification(task);
+    }
+  });
 }

@@ -25,17 +25,34 @@ const AddTaskScreen = ({ navigation }) => {
   const [notes, setNotes] = useState('');
   const [attachments, setAttachments] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [subtaskCounter, setSubtaskCounter] = useState(0); // Nouveau compteur pour les sous-tâches
 
   const handleDatePicker = () => setShowDatePicker(true);
 
   const handleDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
-    if (selectedDate) setDueDate(selectedDate);
+    if (selectedDate) {
+      setDueDate(selectedDate);
+      setShowTimePicker(true); // Ouvre le sélecteur d’heure après la date
+    }
+  };
+
+  const handleTimeChange = (event, selectedTime) => {
+    setShowTimePicker(false);
+    if (selectedTime && dueDate) {
+      const updatedDueDate = new Date(dueDate);
+      updatedDueDate.setHours(selectedTime.getHours());
+      updatedDueDate.setMinutes(selectedTime.getMinutes());
+      setDueDate(updatedDueDate);
+    }
   };
 
   const handleAddSubtask = (text) => {
     if (text.trim()) {
-      setSubtasks([...subtasks, { id: Date.now().toString(), title: text.trim(), completed: false }]);
+      const uniqueId = `${Date.now().toString()}-${subtaskCounter}`;
+      setSubtaskCounter(subtaskCounter + 1); // Incrémenter le compteur
+      setSubtasks([...subtasks, { id: uniqueId, title: text.trim(), completed: false }]);
     }
   };
 
@@ -64,10 +81,8 @@ const AddTaskScreen = ({ navigation }) => {
     await saveTasks(updatedTasks);
     navigation.navigate('Home', { newTask });
 
-    // Planifier les notifications pour la nouvelle tâche
     await scheduleNotification(newTask);
 
-    // Réinitialisation
     setTaskTitle('');
     setDescription('');
     setSelectedProject('Travail');
@@ -78,6 +93,7 @@ const AddTaskScreen = ({ navigation }) => {
     setSubtasks([]);
     setNotes('');
     setAttachments('');
+    setSubtaskCounter(0); // Réinitialiser le compteur après ajout de tâche
   };
 
   return (
@@ -142,15 +158,23 @@ const AddTaskScreen = ({ navigation }) => {
       <Text style={styles.label}>Échéance :</Text>
       <TouchableOpacity style={styles.dateButton} onPress={handleDatePicker}>
         <Text style={styles.dateButtonText}>
-          {dueDate ? `Échéance : ${dueDate.toLocaleDateString()}` : 'Sélectionner une échéance'}
+          {dueDate ? `Échéance : ${dueDate.toLocaleString()}` : 'Sélectionner une échéance'}
         </Text>
       </TouchableOpacity>
       {showDatePicker && (
         <DateTimePicker
-          value={new Date()}
+          value={dueDate || new Date()}
           mode="date"
           display="default"
           onChange={handleDateChange}
+        />
+      )}
+      {showTimePicker && (
+        <DateTimePicker
+          value={dueDate || new Date()}
+          mode="time"
+          display="default"
+          onChange={handleTimeChange}
         />
       )}
       <TextInput
