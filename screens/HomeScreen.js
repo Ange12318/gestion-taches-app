@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { loadTasks, saveTasks } from '../utils/storage';
 import { useNavigation } from '@react-navigation/native';
+import { scheduleNotification } from '../utils/notifications';
 
 const HomeScreen = ({ route }) => {
   const [tasks, setTasks] = useState([]);
@@ -22,6 +23,13 @@ const HomeScreen = ({ route }) => {
     const fetchTasks = async () => {
       const storedTasks = await loadTasks();
       setTasks(storedTasks);
+
+      // Planifier des notifications pour les tâches existantes
+      storedTasks.forEach((task) => {
+        if (task.dueDate && task.status !== 'completed') {
+          scheduleNotification(task);
+        }
+      });
     };
     fetchTasks();
   }, []);
@@ -33,11 +41,15 @@ const HomeScreen = ({ route }) => {
       saveTasks(updatedTasks);
     }
     if (route.params?.updatedTask) {
-      const updatedTasks = tasks.map(t =>
+      const updatedTasks = tasks.map((t) =>
         t.id === route.params.updatedTask.id ? route.params.updatedTask : t
       );
       setTasks(updatedTasks);
       saveTasks(updatedTasks);
+      // Re-planifier la notification si la tâche est mise à jour
+      if (route.params.updatedTask.dueDate && route.params.updatedTask.status !== 'completed') {
+        scheduleNotification(route.params.updatedTask);
+      }
     }
   }, [route.params?.newTask, route.params?.updatedTask]);
 
@@ -83,10 +95,14 @@ const HomeScreen = ({ route }) => {
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'high': return '#e74c3c';
-      case 'medium': return '#f39c12';
-      case 'low': return '#2ecc71';
-      default: return '#95a5a6';
+      case 'high':
+        return '#e74c3c';
+      case 'medium':
+        return '#f39c12';
+      case 'low':
+        return '#2ecc71';
+      default:
+        return '#95a5a6';
     }
   };
 
@@ -115,9 +131,10 @@ const HomeScreen = ({ route }) => {
     </View>
   );
 
-  const filteredTasks = sortedTasks.filter(task =>
-    (filteredProject === 'Tous' || task.project === filteredProject) &&
-    (filteredPriority === 'Toutes' || task.priority === filteredPriority)
+  const filteredTasks = sortedTasks.filter(
+    (task) =>
+      (filteredProject === 'Tous' || task.project === filteredProject) &&
+      (filteredPriority === 'Toutes' || task.priority === filteredPriority)
   );
 
   return (

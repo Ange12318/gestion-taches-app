@@ -11,16 +11,17 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { loadTasks, saveTasks } from '../utils/storage';
+import { scheduleNotification } from '../utils/notifications';
 
 const AddTaskScreen = ({ navigation }) => {
   const [taskTitle, setTaskTitle] = useState('');
-  const [description, setDescription] = useState(''); // Ajout de la description
+  const [description, setDescription] = useState('');
   const [selectedProject, setSelectedProject] = useState('Travail');
   const [selectedTag, setSelectedTag] = useState('Important');
-  const [selectedPriority, setSelectedPriority] = useState('medium'); // Uniformisation : "low", "medium", "high"
-  const [status, setStatus] = useState('not_started'); // Ajout du statut
+  const [selectedPriority, setSelectedPriority] = useState('medium');
+  const [status, setStatus] = useState('not_started');
   const [dueDate, setDueDate] = useState(null);
-  const [subtasks, setSubtasks] = useState([]); // Tableau d'objets
+  const [subtasks, setSubtasks] = useState([]);
   const [notes, setNotes] = useState('');
   const [attachments, setAttachments] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -29,7 +30,7 @@ const AddTaskScreen = ({ navigation }) => {
 
   const handleDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
-    if (selectedDate) setDueDate(selectedDate.toLocaleDateString());
+    if (selectedDate) setDueDate(selectedDate);
   };
 
   const handleAddSubtask = (text) => {
@@ -52,8 +53,8 @@ const AddTaskScreen = ({ navigation }) => {
       tags: [selectedTag],
       priority: selectedPriority,
       status,
-      dueDate,
-      subtasks, // Tableau d'objets
+      dueDate: dueDate ? dueDate.toISOString() : null,
+      subtasks,
       notes,
       attachments,
     };
@@ -62,6 +63,9 @@ const AddTaskScreen = ({ navigation }) => {
     const updatedTasks = [...existingTasks, newTask];
     await saveTasks(updatedTasks);
     navigation.navigate('Home', { newTask });
+
+    // Planifier les notifications pour la nouvelle tâche
+    await scheduleNotification(newTask);
 
     // Réinitialisation
     setTaskTitle('');
@@ -138,7 +142,7 @@ const AddTaskScreen = ({ navigation }) => {
       <Text style={styles.label}>Échéance :</Text>
       <TouchableOpacity style={styles.dateButton} onPress={handleDatePicker}>
         <Text style={styles.dateButtonText}>
-          {dueDate ? `Échéance : ${dueDate}` : 'Sélectionner une échéance'}
+          {dueDate ? `Échéance : ${dueDate.toLocaleDateString()}` : 'Sélectionner une échéance'}
         </Text>
       </TouchableOpacity>
       {showDatePicker && (

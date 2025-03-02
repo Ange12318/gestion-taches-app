@@ -5,7 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ScrollView,
+  ScrollView, // Réintroduit ici
   FlatList,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
@@ -134,6 +134,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
         data={updatedTask.subtasks}
         keyExtractor={(item) => item.id}
         renderItem={renderSubtask}
+        scrollEnabled={false} // Désactive le défilement de la FlatList
       />
       <TouchableOpacity style={styles.addSubtaskButton} onPress={addSubtask}>
         <Text style={styles.addSubtaskText}>+ Ajouter une sous-tâche</Text>
@@ -160,9 +161,9 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flexGrow: 1,
     padding: 16,
     backgroundColor: '#f5f5f5',
+    flexGrow: 1, // Permet au ScrollView de s'étendre avec le contenu
   },
   header: {
     fontSize: 24,
