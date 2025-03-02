@@ -1,10 +1,11 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import AppNavigator from './AppNavigator';
 import { requestNotificationPermissions, restoreNotifications } from './utils/notifications';
 import { loadTasks } from './utils/storage';
+import { ThemeProvider } from './utils/ThemeContext';
 
 const App = () => {
-  useEffect(() => {
+  React.useEffect(() => {
     const initializeApp = async () => {
       await requestNotificationPermissions();
       const tasks = await loadTasks();
@@ -13,7 +14,11 @@ const App = () => {
     initializeApp();
   }, []);
 
-  return <AppNavigator />;
+  return (
+    <ThemeProvider>
+      <AppNavigator />
+    </ThemeProvider>
+  );
 };
 
 export default App;

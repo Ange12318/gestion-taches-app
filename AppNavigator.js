@@ -4,52 +4,48 @@ import { NavigationContainer } from '@react-navigation/native';
 import HomeScreen from './screens/HomeScreen';
 import AddTaskScreen from './screens/AddTaskScreen';
 import SplashScreen from './screens/SplashScreen';
-import TaskDetailsScreen from './screens/TaskDetailsScreen'; // Importation de TaskDetailsScreen
+import TaskDetailsScreen from './screens/TaskDetailsScreen';
+import { useTheme } from './utils/ThemeContext';
 
 const Stack = createStackNavigator();
 
 const AppNavigator = () => {
+  const { themeStyles } = useTheme();
+
   return (
     <NavigationContainer>
       <Stack.Navigator initialRouteName="Splash">
-        {/* Écran de démarrage */}
         <Stack.Screen
           name="Splash"
           component={SplashScreen}
           options={{ headerShown: false }}
         />
-
-        {/* Écran d'accueil */}
         <Stack.Screen
           name="Home"
           component={HomeScreen}
-          options={{ 
+          options={{
             title: 'Taskify',
-            headerStyle: { backgroundColor: '#2ecc71' },
+            headerStyle: { backgroundColor: themeStyles.accentColor },
             headerTintColor: '#fff',
             headerTitleStyle: { fontWeight: 'bold' },
           }}
         />
-
-        {/* Ajout d'une tâche */}
         <Stack.Screen
           name="AddTask"
           component={AddTaskScreen}
-          options={{ 
+          options={{
             title: 'Ajouter une tâche',
-            headerStyle: { backgroundColor: '#2ecc71' },
+            headerStyle: { backgroundColor: themeStyles.accentColor },
             headerTintColor: '#fff',
             headerTitleStyle: { fontWeight: 'bold' },
           }}
         />
-
-        {/* Écran de détails de la tâche */}
         <Stack.Screen
           name="TaskDetails"
-          component={TaskDetailsScreen} // Ajout de l'écran TaskDetailsScreen
+          component={TaskDetailsScreen}
           options={{
             title: 'Détails de la tâche',
-            headerStyle: { backgroundColor: '#2ecc71' },
+            headerStyle: { backgroundColor: themeStyles.accentColor },
             headerTintColor: '#fff',
             headerTitleStyle: { fontWeight: 'bold' },
           }}

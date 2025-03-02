@@ -12,8 +12,10 @@ import {
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { loadTasks, saveTasks } from '../utils/storage';
 import { scheduleNotification } from '../utils/notifications';
+import { useTheme } from '../utils/ThemeContext';
 
 const AddTaskScreen = ({ navigation }) => {
+  const { themeStyles } = useTheme();
   const [taskTitle, setTaskTitle] = useState('');
   const [description, setDescription] = useState('');
   const [selectedProject, setSelectedProject] = useState('Travail');
@@ -26,9 +28,12 @@ const AddTaskScreen = ({ navigation }) => {
   const [attachments, setAttachments] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
-  const [subtaskCounter, setSubtaskCounter] = useState(0); // Nouveau compteur pour les sous-tâches
+  const [subtaskCounter, setSubtaskCounter] = useState(0);
 
-  const handleDatePicker = () => setShowDatePicker(true);
+  const handleDatePicker = () => {
+    console.log('Date picker triggered'); // Débogage
+    setShowDatePicker(true);
+  };
 
   const handleDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
@@ -51,7 +56,7 @@ const AddTaskScreen = ({ navigation }) => {
   const handleAddSubtask = (text) => {
     if (text.trim()) {
       const uniqueId = `${Date.now().toString()}-${subtaskCounter}`;
-      setSubtaskCounter(subtaskCounter + 1); // Incrémenter le compteur
+      setSubtaskCounter(subtaskCounter + 1);
       setSubtasks([...subtasks, { id: uniqueId, title: text.trim(), completed: false }]);
     }
   };
@@ -93,41 +98,46 @@ const AddTaskScreen = ({ navigation }) => {
     setSubtasks([]);
     setNotes('');
     setAttachments('');
-    setSubtaskCounter(0); // Réinitialiser le compteur après ajout de tâche
+    setSubtaskCounter(0);
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.header}>➕ Ajouter une nouvelle tâche</Text>
-
+    <ScrollView style={[styles.container, { backgroundColor: themeStyles.backgroundColor }]}>
+      <View style={[styles.headerContainer, { backgroundColor: themeStyles.accentColor }]}>
+        <Text style={[styles.header, { color: '#ffffff' }]}>➕ Ajouter une nouvelle tâche</Text>
+      </View>
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: themeStyles.cardBackground, color: themeStyles.textColor }]}
         placeholder="Titre de la tâche..."
+        placeholderTextColor={themeStyles.textColor}
         value={taskTitle}
         onChangeText={setTaskTitle}
       />
       <TextInput
-        style={[styles.input, styles.textArea]}
+        style={[styles.input, styles.textArea, { backgroundColor: themeStyles.cardBackground, color: themeStyles.textColor }]}
         placeholder="Description"
+        placeholderTextColor={themeStyles.textColor}
         value={description}
         onChangeText={setDescription}
         multiline
       />
-      <Text style={styles.label}>Projet :</Text>
+      <Text style={[styles.label, { color: themeStyles.textColor }]}>Projet :</Text>
       <Picker
         selectedValue={selectedProject}
-        style={styles.picker}
+        style={[styles.picker, { backgroundColor: themeStyles.cardBackground }]}
         onValueChange={setSelectedProject}
+        dropdownIconColor={themeStyles.textColor}
       >
         <Picker.Item label="Travail" value="Travail" />
         <Picker.Item label="Personnel" value="Personnel" />
         <Picker.Item label="Études" value="Études" />
       </Picker>
-      <Text style={styles.label}>Étiquette :</Text>
+      <Text style={[styles.label, { color: themeStyles.textColor }]}>Étiquette :</Text>
       <Picker
         selectedValue={selectedTag}
-        style={styles.picker}
+        style={[styles.picker, { backgroundColor: themeStyles.cardBackground }]}
         onValueChange={setSelectedTag}
+        dropdownIconColor={themeStyles.textColor}
       >
         <Picker.Item label="Important" value="Important" />
         <Picker.Item label="Urgent" value="Urgent" />
@@ -135,35 +145,40 @@ const AddTaskScreen = ({ navigation }) => {
         <Picker.Item label="Courses" value="Courses" />
         <Picker.Item label="Appel" value="Appel" />
       </Picker>
-      <Text style={styles.label}>Priorité :</Text>
+      <Text style={[styles.label, { color: themeStyles.textColor }]}>Priorité :</Text>
       <Picker
         selectedValue={selectedPriority}
-        style={styles.picker}
+        style={[styles.picker, { backgroundColor: themeStyles.cardBackground }]}
         onValueChange={setSelectedPriority}
+        dropdownIconColor={themeStyles.textColor}
       >
         <Picker.Item label="Basse" value="low" />
         <Picker.Item label="Moyenne" value="medium" />
         <Picker.Item label="Haute" value="high" />
       </Picker>
-      <Text style={styles.label}>Statut :</Text>
+      <Text style={[styles.label, { color: themeStyles.textColor }]}>Statut :</Text>
       <Picker
         selectedValue={status}
-        style={styles.picker}
+        style={[styles.picker, { backgroundColor: themeStyles.cardBackground }]}
         onValueChange={setStatus}
+        dropdownIconColor={themeStyles.textColor}
       >
         <Picker.Item label="Non commencé" value="not_started" />
         <Picker.Item label="En cours" value="in_progress" />
         <Picker.Item label="Terminé" value="completed" />
       </Picker>
-      <Text style={styles.label}>Échéance :</Text>
-      <TouchableOpacity style={styles.dateButton} onPress={handleDatePicker}>
-        <Text style={styles.dateButtonText}>
+      <Text style={[styles.label, { color: themeStyles.textColor }]}>Échéance :</Text>
+      <TouchableOpacity
+        style={[styles.dateButton, { backgroundColor: themeStyles.cardBackground, borderColor: themeStyles.textColor }]}
+        onPress={handleDatePicker} // Vérifié
+      >
+        <Text style={[styles.dateButtonText, { color: themeStyles.textColor }]}>
           {dueDate ? `Échéance : ${dueDate.toLocaleString()}` : 'Sélectionner une échéance'}
         </Text>
       </TouchableOpacity>
       {showDatePicker && (
         <DateTimePicker
-          value={dueDate || new Date()}
+          value={dueDate || new Date()} // Vérifié
           mode="date"
           display="default"
           onChange={handleDateChange}
@@ -171,36 +186,39 @@ const AddTaskScreen = ({ navigation }) => {
       )}
       {showTimePicker && (
         <DateTimePicker
-          value={dueDate || new Date()}
+          value={dueDate || new Date()} // Vérifié
           mode="time"
           display="default"
           onChange={handleTimeChange}
         />
       )}
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: themeStyles.cardBackground, color: themeStyles.textColor }]}
         placeholder="Ajouter une sous-tâche (appuyer sur Entrée)"
+        placeholderTextColor={themeStyles.textColor}
         onSubmitEditing={(e) => handleAddSubtask(e.nativeEvent.text)}
       />
       {subtasks.map((subtask) => (
-        <Text key={subtask.id} style={styles.subtask}>
+        <Text key={subtask.id} style={[styles.subtask, { color: themeStyles.textColor }]}>
           - {subtask.title}
         </Text>
       ))}
       <TextInput
-        style={[styles.input, styles.textArea]}
+        style={[styles.input, styles.textArea, { backgroundColor: themeStyles.cardBackground, color: themeStyles.textColor }]}
         placeholder="Notes"
+        placeholderTextColor={themeStyles.textColor}
         value={notes}
         onChangeText={setNotes}
         multiline
       />
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: themeStyles.cardBackground, color: themeStyles.textColor }]}
         placeholder="Pièces jointes (URL ou chemin)"
+        placeholderTextColor={themeStyles.textColor}
         value={attachments}
         onChangeText={setAttachments}
       />
-      <TouchableOpacity style={styles.addButton} onPress={handleAddTask}>
+      <TouchableOpacity style={[styles.addButton, { backgroundColor: themeStyles.accentColor }]} onPress={handleAddTask}>
         <Text style={styles.addButtonText}>Ajouter la tâche</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -211,16 +229,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f5f5f5',
+  },
+  headerContainer: {
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   header: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#333',
   },
   input: {
-    backgroundColor: '#fff',
     padding: 12,
     borderRadius: 8,
     fontSize: 16,
@@ -237,32 +256,27 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 8,
     marginBottom: 4,
-    color: '#555',
   },
   picker: {
     backgroundColor: '#fff',
     borderRadius: 8,
     marginBottom: 12,
+    padding: 10,
   },
   dateButton: {
-    backgroundColor: '#fff',
     padding: 12,
     borderRadius: 8,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#ddd',
   },
   dateButtonText: {
     fontSize: 16,
-    color: '#333',
   },
   subtask: {
     fontSize: 14,
-    color: '#777',
     marginBottom: 4,
   },
   addButton: {
-    backgroundColor: '#2ecc71',
     padding: 14,
     borderRadius: 8,
     alignItems: 'center',

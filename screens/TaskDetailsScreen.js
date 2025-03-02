@@ -5,13 +5,15 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ScrollView, // Réintroduit ici
+  ScrollView,
   FlatList,
 } from 'react-native';
 import { Picker } from '@react-native-picker/picker';
 import { saveTasks, loadTasks } from '../utils/storage';
+import { useTheme } from '../utils/ThemeContext';
 
 const TaskDetailsScreen = ({ route, navigation }) => {
+  const { themeStyles } = useTheme();
   const { task } = route.params;
   const [updatedTask, setUpdatedTask] = useState({ ...task });
 
@@ -23,7 +25,7 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   };
 
   const addSubtask = () => {
-    const newSubtask = { id: Date.now().toString(), title: '', completed: false };
+    const newSubtask = { id: `${Date.now().toString()}-${Math.random().toString(36).substr(2, 5)}`, title: '', completed: false };
     setUpdatedTask((prevTask) => ({
       ...prevTask,
       subtasks: [...prevTask.subtasks, newSubtask],
@@ -59,100 +61,116 @@ const TaskDetailsScreen = ({ route, navigation }) => {
   };
 
   const renderSubtask = ({ item }) => (
-    <View style={styles.subtaskItem}>
+    <View style={[styles.subtaskItem, { backgroundColor: themeStyles.cardBackground }]}>
       <TouchableOpacity onPress={() => toggleSubtaskCompletion(item.id)}>
-        <Text style={styles.subtaskStatus}>
+        <Text style={[styles.subtaskStatus, { color: themeStyles.textColor }]}>
           {item.completed ? '✅' : '⬜'}
         </Text>
       </TouchableOpacity>
       <TextInput
-        style={styles.subtaskInput}
+        style={[styles.subtaskInput, { backgroundColor: themeStyles.cardBackground, color: themeStyles.textColor }]}
         value={item.title}
         onChangeText={(text) => handleSubtaskChange(item.id, text)}
+        placeholder="Titre de la sous-tâche"
+        placeholderTextColor={themeStyles.textColor}
       />
       <TouchableOpacity onPress={() => deleteSubtask(item.id)}>
-        <Text style={styles.deleteSubtaskText}>🗑️</Text>
+        <Text style={[styles.deleteSubtaskText, { color: themeStyles.secondaryButtonRed }]}>🗑️</Text>
       </TouchableOpacity>
     </View>
   );
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.header}>Modifier la Tâche</Text>
-
-      <Text style={styles.label}>Titre</Text>
+    <ScrollView style={[styles.container, { backgroundColor: themeStyles.backgroundColor }]}>
+      <View style={[styles.headerContainer, { backgroundColor: themeStyles.accentColor }]}>
+        <Text style={[styles.header, { color: '#ffffff' }]}>Modifier la Tâche</Text>
+      </View>
+      <Text style={[styles.label, { color: themeStyles.textColor }]}>Titre</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: themeStyles.cardBackground, color: themeStyles.textColor }]}
         value={updatedTask.title}
         onChangeText={(text) => handleChange('title', text)}
+        placeholder="Titre"
+        placeholderTextColor={themeStyles.textColor}
       />
-      <Text style={styles.label}>Description</Text>
+      <Text style={[styles.label, { color: themeStyles.textColor }]}>Description</Text>
       <TextInput
-        style={[styles.input, styles.textArea]}
+        style={[styles.input, styles.textArea, { backgroundColor: themeStyles.cardBackground, color: themeStyles.textColor }]}
         value={updatedTask.description || ''}
         onChangeText={(text) => handleChange('description', text)}
+        placeholder="Description"
+        placeholderTextColor={themeStyles.textColor}
         multiline
       />
-      <Text style={styles.label}>Projet</Text>
+      <Text style={[styles.label, { color: themeStyles.textColor }]}>Projet</Text>
       <Picker
         selectedValue={updatedTask.project}
-        style={styles.input}
+        style={[styles.picker, { backgroundColor: themeStyles.cardBackground }]}
         onValueChange={(value) => handleChange('project', value)}
+        dropdownIconColor={themeStyles.textColor}
       >
         <Picker.Item label="Travail" value="Travail" />
         <Picker.Item label="Personnel" value="Personnel" />
         <Picker.Item label="Études" value="Études" />
       </Picker>
-      <Text style={styles.label}>Priorité</Text>
+      <Text style={[styles.label, { color: themeStyles.textColor }]}>Priorité</Text>
       <Picker
         selectedValue={updatedTask.priority}
-        style={styles.input}
+        style={[styles.picker, { backgroundColor: themeStyles.cardBackground }]}
         onValueChange={(value) => handleChange('priority', value)}
+        dropdownIconColor={themeStyles.textColor}
       >
         <Picker.Item label="Basse" value="low" />
         <Picker.Item label="Moyenne" value="medium" />
         <Picker.Item label="Haute" value="high" />
       </Picker>
-      <Text style={styles.label}>Statut</Text>
+      <Text style={[styles.label, { color: themeStyles.textColor }]}>Statut</Text>
       <Picker
         selectedValue={updatedTask.status}
-        style={styles.input}
+        style={[styles.picker, { backgroundColor: themeStyles.cardBackground }]}
         onValueChange={(value) => handleChange('status', value)}
+        dropdownIconColor={themeStyles.textColor}
       >
         <Picker.Item label="Non commencé" value="not_started" />
         <Picker.Item label="En cours" value="in_progress" />
         <Picker.Item label="Terminé" value="completed" />
       </Picker>
-      <Text style={styles.label}>Échéance</Text>
+      <Text style={[styles.label, { color: themeStyles.textColor }]}>Échéance</Text>
       <TextInput
-        style={styles.input}
-        value={updatedTask.dueDate || ''}
+        style={[styles.input, { backgroundColor: themeStyles.cardBackground, color: themeStyles.textColor }]}
+        value={updatedTask.dueDate ? new Date(updatedTask.dueDate).toLocaleString() : ''}
         onChangeText={(text) => handleChange('dueDate', text)}
+        placeholder="Échéance"
+        placeholderTextColor={themeStyles.textColor}
       />
-      <Text style={styles.label}>Sous-tâches</Text>
+      <Text style={[styles.label, { color: themeStyles.textColor }]}>Sous-tâches</Text>
       <FlatList
         data={updatedTask.subtasks}
         keyExtractor={(item) => item.id}
         renderItem={renderSubtask}
         scrollEnabled={false} // Désactive le défilement de la FlatList
       />
-      <TouchableOpacity style={styles.addSubtaskButton} onPress={addSubtask}>
+      <TouchableOpacity style={[styles.addSubtaskButton, { backgroundColor: themeStyles.secondaryButtonBlue }]} onPress={addSubtask}>
         <Text style={styles.addSubtaskText}>+ Ajouter une sous-tâche</Text>
       </TouchableOpacity>
-      <Text style={styles.label}>Notes</Text>
+      <Text style={[styles.label, { color: themeStyles.textColor }]}>Notes</Text>
       <TextInput
-        style={[styles.input, styles.textArea]}
+        style={[styles.input, styles.textArea, { backgroundColor: themeStyles.cardBackground, color: themeStyles.textColor }]}
         value={updatedTask.notes || ''}
         onChangeText={(text) => handleChange('notes', text)}
+        placeholder="Notes"
+        placeholderTextColor={themeStyles.textColor}
         multiline
       />
-      <Text style={styles.label}>Pièces jointes</Text>
+      <Text style={[styles.label, { color: themeStyles.textColor }]}>Pièces jointes</Text>
       <TextInput
-        style={styles.input}
+        style={[styles.input, { backgroundColor: themeStyles.cardBackground, color: themeStyles.textColor }]}
         value={updatedTask.attachments || ''}
         onChangeText={(text) => handleChange('attachments', text)}
+        placeholder="Pièces jointes (URL ou chemin)"
+        placeholderTextColor={themeStyles.textColor}
       />
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+      <TouchableOpacity style={[styles.saveButton, { backgroundColor: themeStyles.accentColor }]} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Sauvegarder</Text>
       </TouchableOpacity>
     </ScrollView>
@@ -161,22 +179,23 @@ const TaskDetailsScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
+    flexGrow: 1,
     padding: 16,
-    backgroundColor: '#f5f5f5',
-    flexGrow: 1, // Permet au ScrollView de s'étendre avec le contenu
+  },
+  headerContainer: {
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
   },
   label: {
     fontSize: 16,
     marginBottom: 8,
-    color: '#555',
   },
   input: {
-    backgroundColor: '#fff',
     padding: 12,
     borderRadius: 8,
     fontSize: 16,
@@ -187,6 +206,12 @@ const styles = StyleSheet.create({
   textArea: {
     height: 100,
     textAlignVertical: 'top',
+  },
+  picker: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginBottom: 12,
+    padding: 10,
   },
   subtaskItem: {
     flexDirection: 'row',
@@ -199,7 +224,6 @@ const styles = StyleSheet.create({
   },
   subtaskInput: {
     flex: 1,
-    backgroundColor: '#fff',
     padding: 8,
     borderRadius: 8,
     borderWidth: 1,
@@ -207,11 +231,9 @@ const styles = StyleSheet.create({
   },
   deleteSubtaskText: {
     fontSize: 18,
-    color: '#e74c3c',
     marginLeft: 8,
   },
   addSubtaskButton: {
-    backgroundColor: '#3498db',
     padding: 8,
     borderRadius: 8,
     alignItems: 'center',
@@ -219,12 +241,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   addSubtaskText: {
-    color: '#fff',
+    color: '#ffffff',
     fontSize: 16,
     fontWeight: 'bold',
   },
   saveButton: {
-    backgroundColor: '#2ecc71',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',

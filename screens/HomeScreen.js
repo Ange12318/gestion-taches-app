@@ -8,11 +8,14 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { loadTasks, saveTasks } from '../utils/storage';
 import { useNavigation } from '@react-navigation/native';
 import { scheduleNotification, cancelTaskNotifications } from '../utils/notifications';
+import { useTheme } from '../utils/ThemeContext';
 
 const HomeScreen = ({ route }) => {
+  const { themeStyles, toggleTheme } = useTheme();
   const [tasks, setTasks] = useState([]);
   const [filteredProject, setFilteredProject] = useState('Tous');
   const [filteredPriority, setFilteredPriority] = useState('Toutes');
@@ -111,25 +114,44 @@ const HomeScreen = ({ route }) => {
   };
 
   const renderTask = ({ item }) => (
-    <View style={styles.taskItem}>
+    <View style={[styles.taskItem, { backgroundColor: themeStyles.cardBackground }]}>
       <TouchableOpacity style={styles.taskContent} onPress={() => toggleTaskCompletion(item.id)}>
-        <Text style={styles.taskTitle}>{item.title}</Text>
-        <Text style={styles.taskProject}>Projet : {item.project}</Text>
-        <Text style={styles.taskTags}>Tags : {item.tags.join(', ')}</Text>
-        <Text style={[styles.taskPriority, { color: getPriorityColor(item.priority) }]}>
-          Priorité : {item.priority === 'low' ? 'Basse' : item.priority === 'medium' ? 'Moyenne' : 'Haute'}
+        <Text style={[styles.taskTitle, { color: themeStyles.textColor }]}>{item.title}</Text>
+        <Text style={[styles.taskProject, { color: themeStyles.textColor }]}>
+          Projet : {item.project}
         </Text>
-        <Text style={styles.taskStatus}>
-          Statut : {item.status === 'completed' ? '✅ Terminée' : item.status === 'in_progress' ? '⌛ En cours' : '⏳ Non commencé'}
+        <Text style={[styles.taskTags, { color: themeStyles.textColor }]}>
+          Tags : {item.tags.join(', ')}
+        </Text>
+        <Text
+          style={[styles.taskPriority, { color: getPriorityColor(item.priority) || themeStyles.textColor }]}
+        >
+          Priorité :{' '}
+          {item.priority === 'low'
+            ? 'Basse'
+            : item.priority === 'medium'
+            ? 'Moyenne'
+            : 'Haute'}
+        </Text>
+        <Text style={[styles.taskStatus, { color: themeStyles.textColor }]}>
+          Statut :{' '}
+          {item.status === 'completed'
+            ? '✅ Terminée'
+            : item.status === 'in_progress'
+            ? '⌛ En cours'
+            : '⏳ Non commencé'}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={styles.editButton}
+        style={[styles.editButton, { backgroundColor: themeStyles.secondaryButtonBlue }]}
         onPress={() => navigation.navigate('TaskDetails', { task: item })}
       >
         <Text style={styles.editButtonText}>Modifier</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={styles.deleteButton} onPress={() => deleteTask(item.id)}>
+      <TouchableOpacity
+        style={[styles.deleteButton, { backgroundColor: themeStyles.secondaryButtonRed }]}
+        onPress={() => deleteTask(item.id)}
+      >
         <Text style={styles.deleteButtonText}>Supprimer</Text>
       </TouchableOpacity>
     </View>
@@ -142,13 +164,23 @@ const HomeScreen = ({ route }) => {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>📌 Mes Tâches</Text>
+    <View style={[styles.container, { backgroundColor: themeStyles.backgroundColor }]}>
+      <View style={[styles.headerContainer, { backgroundColor: themeStyles.accentColor }]}>
+        <Text style={[styles.header, { color: '#ffffff' }]}>📌 Mes Tâches</Text>
+        <TouchableOpacity onPress={toggleTheme} style={styles.themeToggle}>
+          <MaterialIcons
+            name={themeStyles === 'light' ? 'dark-mode' : 'light-mode'}
+            size={24}
+            color="#ffffff"
+          />
+        </TouchableOpacity>
+      </View>
       <View style={styles.filterContainer}>
         <Picker
           selectedValue={filteredProject}
-          style={styles.picker}
+          style={[styles.picker, { backgroundColor: themeStyles.cardBackground, minWidth: 140 }]} // Ajustement de la largeur
           onValueChange={setFilteredProject}
+          dropdownIconColor={themeStyles.textColor}
         >
           <Picker.Item label="Tous les projets" value="Tous" />
           <Picker.Item label="Travail" value="Travail" />
@@ -157,8 +189,9 @@ const HomeScreen = ({ route }) => {
         </Picker>
         <Picker
           selectedValue={filteredPriority}
-          style={styles.picker}
+          style={[styles.picker, { backgroundColor: themeStyles.cardBackground, minWidth: 140 }]} // Ajustement de la largeur
           onValueChange={setFilteredPriority}
+          dropdownIconColor={themeStyles.textColor}
         >
           <Picker.Item label="Toutes les priorités" value="Toutes" />
           <Picker.Item label="Haute" value="high" />
@@ -167,15 +200,19 @@ const HomeScreen = ({ route }) => {
         </Picker>
         <Picker
           selectedValue={filteredSort}
-          style={styles.picker}
+          style={[styles.picker, { backgroundColor: themeStyles.cardBackground, minWidth: 140 }]} // Ajustement de la largeur
           onValueChange={setFilteredSort}
+          dropdownIconColor={themeStyles.textColor}
         >
           <Picker.Item label="Trier par date" value="date" />
           <Picker.Item label="Trier par priorité" value="priority" />
         </Picker>
       </View>
       <FlatList data={filteredTasks} renderItem={renderTask} keyExtractor={(item) => item.id} />
-      <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('AddTask')}>
+      <TouchableOpacity
+        style={[styles.addButton, { backgroundColor: themeStyles.accentColor }]}
+        onPress={() => navigation.navigate('AddTask')}
+      >
         <Text style={styles.addButtonText}>+ Ajouter une tâche</Text>
       </TouchableOpacity>
     </View>
@@ -186,13 +223,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f5f5f5',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 16,
   },
   header: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
-    color: '#333',
   },
   filterContainer: {
     flexDirection: 'row',
@@ -200,29 +242,27 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   picker: {
-    width: '30%',
-    backgroundColor: '#fff',
     borderRadius: 8,
+    padding: 10,
   },
   taskItem: {
-    backgroundColor: '#fff',
     padding: 16,
     borderRadius: 8,
     marginBottom: 8,
     elevation: 2,
   },
+  taskContent: {
+    marginBottom: 8,
+  },
   taskTitle: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
   },
   taskProject: {
     fontSize: 14,
-    color: '#777',
   },
   taskTags: {
     fontSize: 14,
-    color: '#777',
     fontStyle: 'italic',
   },
   taskPriority: {
@@ -231,32 +271,28 @@ const styles = StyleSheet.create({
   },
   taskStatus: {
     fontSize: 14,
-    color: '#777',
   },
   editButton: {
-    backgroundColor: '#3498db',
     padding: 8,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
   },
   editButtonText: {
-    color: '#fff',
+    color: '#ffffff',
     fontWeight: 'bold',
   },
   deleteButton: {
-    backgroundColor: '#e74c3c',
     padding: 8,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
   },
   deleteButtonText: {
-    color: '#fff',
+    color: '#ffffff',
     fontWeight: 'bold',
   },
   addButton: {
-    backgroundColor: '#2ecc71',
     padding: 16,
     borderRadius: 8,
     alignItems: 'center',
@@ -266,6 +302,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  themeToggle: {
+    padding: 5,
   },
 });
 

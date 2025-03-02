@@ -1,12 +1,13 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { useTheme } from '../utils/ThemeContext';
 
 const SplashScreen = ({ navigation }) => {
+  const { themeStyles } = useTheme();
   const fadeAnim = new Animated.Value(0);
   const scaleAnim = new Animated.Value(1);
 
   useEffect(() => {
-    // Animation du fade-in et du zoom du logo
     Animated.sequence([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -24,13 +25,13 @@ const SplashScreen = ({ navigation }) => {
 
     setTimeout(() => {
       navigation.replace('Home');
-    }, 3000); // Durée de l'animation avant de naviguer
+    }, 3000);
   }, [fadeAnim, scaleAnim, navigation]);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: themeStyles.accentColor }]}>
       <Animated.Text
-        style={[styles.appName, { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }]}
+        style={[styles.appName, { opacity: fadeAnim, transform: [{ scale: scaleAnim }], color: '#ffffff' }]}
       >
         Taskify
       </Animated.Text>
@@ -43,12 +44,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#00796b',
   },
   appName: {
     fontSize: 48,
     fontWeight: 'bold',
-    color: '#ffffff',
   },
 });
 
