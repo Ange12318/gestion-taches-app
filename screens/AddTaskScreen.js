@@ -29,9 +29,10 @@ const AddTaskScreen = ({ navigation }) => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [subtaskCounter, setSubtaskCounter] = useState(0);
+  const [selectedReminder, setSelectedReminder] = useState('none'); // Changé en une seule valeur
 
   const handleDatePicker = () => {
-    console.log('Date picker triggered'); // Débogage
+    console.log('Date picker triggered');
     setShowDatePicker(true);
   };
 
@@ -39,7 +40,7 @@ const AddTaskScreen = ({ navigation }) => {
     setShowDatePicker(false);
     if (selectedDate) {
       setDueDate(selectedDate);
-      setShowTimePicker(true); // Ouvre le sélecteur d’heure après la date
+      setShowTimePicker(true);
     }
   };
 
@@ -79,6 +80,7 @@ const AddTaskScreen = ({ navigation }) => {
       subtasks,
       notes,
       attachments,
+      reminder: selectedReminder, // Stocker un seul rappel
     };
 
     const existingTasks = await loadTasks();
@@ -99,6 +101,7 @@ const AddTaskScreen = ({ navigation }) => {
     setNotes('');
     setAttachments('');
     setSubtaskCounter(0);
+    setSelectedReminder('none'); // Réinitialiser le rappel
   };
 
   return (
@@ -170,7 +173,7 @@ const AddTaskScreen = ({ navigation }) => {
       <Text style={[styles.label, { color: themeStyles.textColor }]}>Échéance :</Text>
       <TouchableOpacity
         style={[styles.dateButton, { backgroundColor: themeStyles.cardBackground, borderColor: themeStyles.textColor }]}
-        onPress={handleDatePicker} // Vérifié
+        onPress={handleDatePicker}
       >
         <Text style={[styles.dateButtonText, { color: themeStyles.textColor }]}>
           {dueDate ? `Échéance : ${dueDate.toLocaleString()}` : 'Sélectionner une échéance'}
@@ -178,7 +181,7 @@ const AddTaskScreen = ({ navigation }) => {
       </TouchableOpacity>
       {showDatePicker && (
         <DateTimePicker
-          value={dueDate || new Date()} // Vérifié
+          value={dueDate || new Date()}
           mode="date"
           display="default"
           onChange={handleDateChange}
@@ -186,12 +189,25 @@ const AddTaskScreen = ({ navigation }) => {
       )}
       {showTimePicker && (
         <DateTimePicker
-          value={dueDate || new Date()} // Vérifié
+          value={dueDate || new Date()}
           mode="time"
           display="default"
           onChange={handleTimeChange}
         />
       )}
+      <Text style={[styles.label, { color: themeStyles.textColor }]}>Rappel :</Text>
+      <Picker
+        selectedValue={selectedReminder} // Utilisation d'une seule valeur
+        style={[styles.picker, { backgroundColor: themeStyles.cardBackground }]}
+        onValueChange={setSelectedReminder}
+        dropdownIconColor={themeStyles.textColor}
+      >
+        <Picker.Item label="Aucun rappel" value="none" />
+        <Picker.Item label="2 jours avant" value="2d" />
+        <Picker.Item label="1 jour avant" value="1d" />
+        <Picker.Item label="2 heures avant" value="2h" />
+        <Picker.Item label="1 heure avant" value="1h" />
+      </Picker>
       <TextInput
         style={[styles.input, { backgroundColor: themeStyles.cardBackground, color: themeStyles.textColor }]}
         placeholder="Ajouter une sous-tâche (appuyer sur Entrée)"

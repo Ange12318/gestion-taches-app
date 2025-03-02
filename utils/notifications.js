@@ -45,7 +45,7 @@ export async function requestNotificationPermissions() {
 }
 
 export async function scheduleNotification(task) {
-  const { id, title, priority, dueDate, status } = task;
+  const { id, title, priority, dueDate, status, reminder } = task;
 
   let priorityDelay;
   switch (priority) {
@@ -73,36 +73,39 @@ export async function scheduleNotification(task) {
   });
 
   let scheduledNotifications = [];
-  if (dueDate && status !== 'completed') {
+  if (dueDate && status !== 'completed' && reminder !== 'none') {
     const dueDateTime = new Date(dueDate);
     const now = new Date();
 
-    const oneDayBefore = new Date(dueDateTime.getTime() - 24 * 60 * 60 * 1000);
-    if (oneDayBefore > now) {
-      const oneDayNotif = await Notifications.scheduleNotificationAsync({
+    let reminderTime;
+    switch (reminder) {
+      case '2d':
+        reminderTime = new Date(dueDateTime.getTime() - 2 * 24 * 60 * 60 * 1000); // 2 jours avant
+        break;
+      case '1d':
+        reminderTime = new Date(dueDateTime.getTime() - 1 * 24 * 60 * 60 * 1000); // 1 jour avant
+        break;
+      case '2h':
+        reminderTime = new Date(dueDateTime.getTime() - 2 * 60 * 60 * 1000); // 2 heures avant
+        break;
+      case '1h':
+        reminderTime = new Date(dueDateTime.getTime() - 1 * 60 * 60 * 1000); // 1 heure avant
+        break;
+      default:
+        return;
+    }
+
+    if (reminderTime > now) {
+      const reminderNotif = await Notifications.scheduleNotificationAsync({
         content: {
-          title: 'Rappel : 1 jour restant',
+          title: `Rappel : ${reminder === '2d' ? '2 jours' : reminder === '1d' ? '1 jour' : reminder === '2h' ? '2 heures' : '1 heure'} restant`,
           body: `La tâche "${title}" est due le ${dueDateTime.toLocaleString()}.`,
           sound: 'default',
           data: { taskId: id },
         },
-        trigger: oneDayBefore,
+        trigger: reminderTime,
       });
-      scheduledNotifications.push({ id: oneDayNotif, taskId: id });
-    }
-
-    const oneHourBefore = new Date(dueDateTime.getTime() - 60 * 60 * 1000);
-    if (oneHourBefore > now) {
-      const oneHourNotif = await Notifications.scheduleNotificationAsync({
-        content: {
-          title: 'Délai approche !',
-          body: `La tâche "${title}" est due dans 1 heure (${dueDateTime.toLocaleString()}).`,
-          sound: 'default',
-          data: { taskId: id },
-        },
-        trigger: oneHourBefore,
-      });
-      scheduledNotifications.push({ id: oneHourNotif, taskId: id });
+      scheduledNotifications.push({ id: reminderNotif, taskId: id });
     }
   }
 
