@@ -1,13 +1,20 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView, FlatList } from 'react-native';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  FlatList,
+} from 'react-native';
 import { Picker } from '@react-native-picker/picker';
-import { useNavigation } from '@react-navigation/native';
+import { saveTasks, loadTasks } from '../utils/storage';
 
 const TaskDetailsScreen = ({ route, navigation }) => {
-  const { task } = route.params; // Récupérer la tâche
+  const { task } = route.params;
   const [updatedTask, setUpdatedTask] = useState({ ...task });
 
-  // Fonction pour gérer les changements des champs de la tâche
   const handleChange = (field, value) => {
     setUpdatedTask((prevTask) => ({
       ...prevTask,
@@ -15,7 +22,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     }));
   };
 
-  // Ajouter une sous-tâche
   const addSubtask = () => {
     const newSubtask = { id: Date.now().toString(), title: '', completed: false };
     setUpdatedTask((prevTask) => ({
@@ -24,7 +30,6 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     }));
   };
 
-  // Gérer le changement d'une sous-tâche
   const handleSubtaskChange = (id, title) => {
     const updatedSubtasks = updatedTask.subtasks.map((subtask) =>
       subtask.id === id ? { ...subtask, title } : subtask
@@ -32,94 +37,120 @@ const TaskDetailsScreen = ({ route, navigation }) => {
     setUpdatedTask((prevTask) => ({ ...prevTask, subtasks: updatedSubtasks }));
   };
 
-  // Sauvegarder la tâche modifiée
-  const handleSave = () => {
-    navigation.goBack();
-    navigation.setParams({ task: updatedTask }); // Mettre à jour la tâche sur l'écran précédent
+  const toggleSubtaskCompletion = (id) => {
+    const updatedSubtasks = updatedTask.subtasks.map((subtask) =>
+      subtask.id === id ? { ...subtask, completed: !subtask.completed } : subtask
+    );
+    setUpdatedTask((prevTask) => ({ ...prevTask, subtasks: updatedSubtasks }));
   };
+
+  const deleteSubtask = (id) => {
+    const updatedSubtasks = updatedTask.subtasks.filter((subtask) => subtask.id !== id);
+    setUpdatedTask((prevTask) => ({ ...prevTask, subtasks: updatedSubtasks }));
+  };
+
+  const handleSave = async () => {
+    const existingTasks = await loadTasks();
+    const updatedTasks = existingTasks.map((t) =>
+      t.id === updatedTask.id ? updatedTask : t
+    );
+    await saveTasks(updatedTasks);
+    navigation.navigate('Home', { updatedTask });
+  };
+
+  const renderSubtask = ({ item }) => (
+    <View style={styles.subtaskItem}>
+      <TouchableOpacity onPress={() => toggleSubtaskCompletion(item.id)}>
+        <Text style={styles.subtaskStatus}>
+          {item.completed ? '✅' : '⬜'}
+        </Text>
+      </TouchableOpacity>
+      <TextInput
+        style={styles.subtaskInput}
+        value={item.title}
+        onChangeText={(text) => handleSubtaskChange(item.id, text)}
+      />
+      <TouchableOpacity onPress={() => deleteSubtask(item.id)}>
+        <Text style={styles.deleteSubtaskText}>🗑️</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Text style={styles.header}>Modifier la Tâche</Text>
 
-      {/* Titre de la tâche */}
       <Text style={styles.label}>Titre</Text>
       <TextInput
         style={styles.input}
         value={updatedTask.title}
         onChangeText={(text) => handleChange('title', text)}
       />
-
-      {/* Description de la tâche */}
       <Text style={styles.label}>Description</Text>
       <TextInput
-        style={styles.input}
-        value={updatedTask.description}
+        style={[styles.input, styles.textArea]}
+        value={updatedTask.description || ''}
         onChangeText={(text) => handleChange('description', text)}
+        multiline
       />
-
-      {/* Priorité de la tâche */}
+      <Text style={styles.label}>Projet</Text>
+      <Picker
+        selectedValue={updatedTask.project}
+        style={styles.input}
+        onValueChange={(value) => handleChange('project', value)}
+      >
+        <Picker.Item label="Travail" value="Travail" />
+        <Picker.Item label="Personnel" value="Personnel" />
+        <Picker.Item label="Études" value="Études" />
+      </Picker>
       <Text style={styles.label}>Priorité</Text>
       <Picker
         selectedValue={updatedTask.priority}
         style={styles.input}
-        onValueChange={(itemValue) => handleChange('priority', itemValue)}
+        onValueChange={(value) => handleChange('priority', value)}
       >
-        <Picker.Item label="Faible" value="low" />
+        <Picker.Item label="Basse" value="low" />
         <Picker.Item label="Moyenne" value="medium" />
-        <Picker.Item label="Élevée" value="high" />
+        <Picker.Item label="Haute" value="high" />
       </Picker>
-
-      {/* Date limite de la tâche */}
-      <Text style={styles.label}>Date limite</Text>
-      <TextInput
-        style={styles.input}
-        value={updatedTask.dueDate}
-        onChangeText={(text) => handleChange('dueDate', text)}
-      />
-
-      {/* Statut de la tâche */}
-      <Text style={styles.label}>État</Text>
+      <Text style={styles.label}>Statut</Text>
       <Picker
         selectedValue={updatedTask.status}
         style={styles.input}
-        onValueChange={(itemValue) => handleChange('status', itemValue)}
+        onValueChange={(value) => handleChange('status', value)}
       >
         <Picker.Item label="Non commencé" value="not_started" />
         <Picker.Item label="En cours" value="in_progress" />
         <Picker.Item label="Terminé" value="completed" />
       </Picker>
-
-      {/* Sous-tâches */}
+      <Text style={styles.label}>Échéance</Text>
+      <TextInput
+        style={styles.input}
+        value={updatedTask.dueDate || ''}
+        onChangeText={(text) => handleChange('dueDate', text)}
+      />
       <Text style={styles.label}>Sous-tâches</Text>
       <FlatList
         data={updatedTask.subtasks}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.subtaskItem}>
-            <TextInput
-              style={styles.input}
-              value={item.title}
-              placeholder="Sous-tâche"
-              onChangeText={(text) => handleSubtaskChange(item.id, text)}
-            />
-          </View>
-        )}
+        renderItem={renderSubtask}
       />
       <TouchableOpacity style={styles.addSubtaskButton} onPress={addSubtask}>
         <Text style={styles.addSubtaskText}>+ Ajouter une sous-tâche</Text>
       </TouchableOpacity>
-
-      {/* Pièces jointes */}
+      <Text style={styles.label}>Notes</Text>
+      <TextInput
+        style={[styles.input, styles.textArea]}
+        value={updatedTask.notes || ''}
+        onChangeText={(text) => handleChange('notes', text)}
+        multiline
+      />
       <Text style={styles.label}>Pièces jointes</Text>
       <TextInput
         style={styles.input}
-        value={updatedTask.attachments}
-        placeholder="Ajouter des liens de pièces jointes"
+        value={updatedTask.attachments || ''}
         onChangeText={(text) => handleChange('attachments', text)}
       />
-
-      {/* Bouton pour sauvegarder */}
       <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
         <Text style={styles.saveButtonText}>Sauvegarder</Text>
       </TouchableOpacity>
@@ -141,16 +172,42 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 16,
     marginBottom: 8,
+    color: '#555',
   },
   input: {
-    height: 40,
-    borderColor: '#ccc',
+    backgroundColor: '#fff',
+    padding: 12,
+    borderRadius: 8,
+    fontSize: 16,
+    marginBottom: 12,
     borderWidth: 1,
-    marginBottom: 16,
-    paddingLeft: 8,
+    borderColor: '#ddd',
+  },
+  textArea: {
+    height: 100,
+    textAlignVertical: 'top',
   },
   subtaskItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginBottom: 8,
+  },
+  subtaskStatus: {
+    fontSize: 18,
+    marginRight: 8,
+  },
+  subtaskInput: {
+    flex: 1,
+    backgroundColor: '#fff',
+    padding: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  deleteSubtaskText: {
+    fontSize: 18,
+    color: '#e74c3c',
+    marginLeft: 8,
   },
   addSubtaskButton: {
     backgroundColor: '#3498db',
@@ -158,6 +215,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
+    marginBottom: 12,
   },
   addSubtaskText: {
     color: '#fff',
@@ -174,6 +232,7 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: '#fff',
     fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 

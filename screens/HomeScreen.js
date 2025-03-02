@@ -6,19 +6,18 @@ import {
   StyleSheet,
   FlatList,
   TouchableOpacity,
-  Alert
+  Alert,
 } from 'react-native';
-import { loadTasks, saveTasks } from '../utils/storage'; // Import du stockage
-import { useNavigation } from '@react-navigation/native'; // Utilisation de la navigation
+import { loadTasks, saveTasks } from '../utils/storage';
+import { useNavigation } from '@react-navigation/native';
 
 const HomeScreen = ({ route }) => {
   const [tasks, setTasks] = useState([]);
   const [filteredProject, setFilteredProject] = useState('Tous');
   const [filteredPriority, setFilteredPriority] = useState('Toutes');
-  const [filteredSort, setFilteredSort] = useState('date'); // Ajout du tri
-  const navigation = useNavigation(); // Hook pour la navigation
+  const [filteredSort, setFilteredSort] = useState('date');
+  const navigation = useNavigation();
 
-  // Charger les tâches au démarrage
   useEffect(() => {
     const fetchTasks = async () => {
       const storedTasks = await loadTasks();
@@ -27,25 +26,31 @@ const HomeScreen = ({ route }) => {
     fetchTasks();
   }, []);
 
-  // Ajouter une nouvelle tâche depuis AddTaskScreen
   useEffect(() => {
     if (route.params?.newTask) {
       const updatedTasks = [...tasks, route.params.newTask];
       setTasks(updatedTasks);
-      saveTasks(updatedTasks); // Sauvegarde immédiate
+      saveTasks(updatedTasks);
     }
-  }, [route.params?.newTask]);
+    if (route.params?.updatedTask) {
+      const updatedTasks = tasks.map(t =>
+        t.id === route.params.updatedTask.id ? route.params.updatedTask : t
+      );
+      setTasks(updatedTasks);
+      saveTasks(updatedTasks);
+    }
+  }, [route.params?.newTask, route.params?.updatedTask]);
 
-  // Basculer l'état de complétion d'une tâche
   const toggleTaskCompletion = (taskId) => {
     const updatedTasks = tasks.map((task) =>
-      task.id === taskId ? { ...task, completed: !task.completed } : task
+      task.id === taskId
+        ? { ...task, status: task.status === 'completed' ? 'in_progress' : 'completed' }
+        : task
     );
     setTasks(updatedTasks);
     saveTasks(updatedTasks);
   };
 
-  // Supprimer une tâche avec confirmation
   const deleteTask = (taskId) => {
     Alert.alert(
       'Supprimer la tâche',
@@ -65,73 +70,52 @@ const HomeScreen = ({ route }) => {
     );
   };
 
-  // Regrouper les tâches par projet
-  const groupedTasks = tasks.reduce((groups, task) => {
-    const group = task.project || 'Sans projet'; // Regroupe par projet
-    if (!groups[group]) {
-      groups[group] = [];
-    }
-    groups[group].push(task);
-    return groups;
-  }, {});
-
-  // Fonction de tri
-  const sortedTasks = Object.values(groupedTasks).flat().sort((a, b) => {
-    if (filteredSort === 'date') {
-      return new Date(a.dueDate) - new Date(b.dueDate); // Trier par date
+  const sortedTasks = [...tasks].sort((a, b) => {
+    if (filteredSort === 'date' && a.dueDate && b.dueDate) {
+      return new Date(a.dueDate) - new Date(b.dueDate);
     }
     if (filteredSort === 'priority') {
-      return a.priority.localeCompare(b.priority); // Trier par priorité
+      const priorityOrder = { high: 3, medium: 2, low: 1 };
+      return (priorityOrder[b.priority] || 0) - (priorityOrder[a.priority] || 0);
     }
     return 0;
   });
 
   const getPriorityColor = (priority) => {
     switch (priority) {
-      case 'Haute':
-        return '#e74c3c'; // Rouge
-      case 'Moyenne':
-        return '#f39c12'; // Orange
-      case 'Basse':
-        return '#2ecc71'; // Vert
-      default:
-        return '#95a5a6'; // Gris
+      case 'high': return '#e74c3c';
+      case 'medium': return '#f39c12';
+      case 'low': return '#2ecc71';
+      default: return '#95a5a6';
     }
   };
 
   const renderTask = ({ item }) => (
     <View style={styles.taskItem}>
-      <TouchableOpacity
-        style={styles.taskContent}
-        onPress={() => toggleTaskCompletion(item.id)}
-      >
+      <TouchableOpacity style={styles.taskContent} onPress={() => toggleTaskCompletion(item.id)}>
         <Text style={styles.taskTitle}>{item.title}</Text>
         <Text style={styles.taskProject}>Projet : {item.project}</Text>
         <Text style={styles.taskTags}>Tags : {item.tags.join(', ')}</Text>
-        <Text style={[styles.taskPriority, { color: getPriorityColor(item.priority) }]} >
-          Priorité : {item.priority}
+        <Text style={[styles.taskPriority, { color: getPriorityColor(item.priority) }]}>
+          Priorité : {item.priority === 'low' ? 'Basse' : item.priority === 'medium' ? 'Moyenne' : 'Haute'}
         </Text>
         <Text style={styles.taskStatus}>
-          Statut : {item.completed ? '✅ Terminée' : '⌛ En cours'}
+          Statut : {item.status === 'completed' ? '✅ Terminée' : item.status === 'in_progress' ? '⌛ En cours' : '⏳ Non commencé'}
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
         style={styles.editButton}
-        onPress={() => navigation.navigate('TaskDetails', { taskId: item.id })} // Passer l'ID de la tâche à TaskDetails
+        onPress={() => navigation.navigate('TaskDetails', { task: item })}
       >
         <Text style={styles.editButtonText}>Modifier</Text>
       </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.deleteButton}
-        onPress={() => deleteTask(item.id)}
-      >
+      <TouchableOpacity style={styles.deleteButton} onPress={() => deleteTask(item.id)}>
         <Text style={styles.deleteButtonText}>Supprimer</Text>
       </TouchableOpacity>
     </View>
   );
 
-  // Filtrer les tâches selon le projet et la priorité
-  const filteredTasks = sortedTasks.filter(task => 
+  const filteredTasks = sortedTasks.filter(task =>
     (filteredProject === 'Tous' || task.project === filteredProject) &&
     (filteredPriority === 'Toutes' || task.priority === filteredPriority)
   );
@@ -139,50 +123,38 @@ const HomeScreen = ({ route }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>📌 Mes Tâches</Text>
-
       <View style={styles.filterContainer}>
         <Picker
           selectedValue={filteredProject}
           style={styles.picker}
-          onValueChange={(itemValue) => setFilteredProject(itemValue)}
+          onValueChange={setFilteredProject}
         >
           <Picker.Item label="Tous les projets" value="Tous" />
           <Picker.Item label="Travail" value="Travail" />
           <Picker.Item label="Personnel" value="Personnel" />
           <Picker.Item label="Études" value="Études" />
         </Picker>
-
         <Picker
           selectedValue={filteredPriority}
           style={styles.picker}
-          onValueChange={(itemValue) => setFilteredPriority(itemValue)}
+          onValueChange={setFilteredPriority}
         >
           <Picker.Item label="Toutes les priorités" value="Toutes" />
-          <Picker.Item label="Haute" value="Haute" />
-          <Picker.Item label="Moyenne" value="Moyenne" />
-          <Picker.Item label="Basse" value="Basse" />
+          <Picker.Item label="Haute" value="high" />
+          <Picker.Item label="Moyenne" value="medium" />
+          <Picker.Item label="Basse" value="low" />
         </Picker>
-
         <Picker
           selectedValue={filteredSort}
           style={styles.picker}
-          onValueChange={(itemValue) => setFilteredSort(itemValue)}
+          onValueChange={setFilteredSort}
         >
           <Picker.Item label="Trier par date" value="date" />
           <Picker.Item label="Trier par priorité" value="priority" />
         </Picker>
       </View>
-
-      <FlatList
-        data={filteredTasks}
-        renderItem={renderTask}
-        keyExtractor={(item) => item.id}
-      />
-
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => navigation.navigate('AddTask')} // Naviguer vers l'écran d'ajout de tâche
-      >
+      <FlatList data={filteredTasks} renderItem={renderTask} keyExtractor={(item) => item.id} />
+      <TouchableOpacity style={styles.addButton} onPress={() => navigation.navigate('AddTask')}>
         <Text style={styles.addButtonText}>+ Ajouter une tâche</Text>
       </TouchableOpacity>
     </View>

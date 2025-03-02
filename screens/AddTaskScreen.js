@@ -9,30 +9,32 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker'; // Import de DateTimePicker
-import { loadTasks, saveTasks } from '../utils/storage'; // Import des fonctions de stockage
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { loadTasks, saveTasks } from '../utils/storage';
 
 const AddTaskScreen = ({ navigation }) => {
   const [taskTitle, setTaskTitle] = useState('');
+  const [description, setDescription] = useState(''); // Ajout de la description
   const [selectedProject, setSelectedProject] = useState('Travail');
   const [selectedTag, setSelectedTag] = useState('Important');
-  const [selectedPriority, setSelectedPriority] = useState('Moyenne');
+  const [selectedPriority, setSelectedPriority] = useState('medium'); // Uniformisation : "low", "medium", "high"
+  const [status, setStatus] = useState('not_started'); // Ajout du statut
   const [dueDate, setDueDate] = useState(null);
-  const [subTasks, setSubTasks] = useState('');
+  const [subtasks, setSubtasks] = useState([]); // Tableau d'objets
   const [notes, setNotes] = useState('');
   const [attachments, setAttachments] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
 
-  // Fonction pour afficher le DateTimePicker
-  const handleDatePicker = () => {
-    setShowDatePicker(true);
-  };
+  const handleDatePicker = () => setShowDatePicker(true);
 
-  // Fonction pour mettre à jour la date
   const handleDateChange = (event, selectedDate) => {
     setShowDatePicker(false);
-    if (selectedDate) {
-      setDueDate(selectedDate.toLocaleDateString());
+    if (selectedDate) setDueDate(selectedDate.toLocaleDateString());
+  };
+
+  const handleAddSubtask = (text) => {
+    if (text.trim()) {
+      setSubtasks([...subtasks, { id: Date.now().toString(), title: text.trim(), completed: false }]);
     }
   };
 
@@ -42,34 +44,34 @@ const AddTaskScreen = ({ navigation }) => {
       return;
     }
 
-    // Charger les tâches existantes
-    const existingTasks = await loadTasks();
-
     const newTask = {
       id: Date.now().toString(),
       title: taskTitle,
+      description,
       project: selectedProject,
       tags: [selectedTag],
       priority: selectedPriority,
-      completed: false,
-      dueDate: dueDate,
-      subTasks: subTasks.split(','), // Sous-tâches séparées par des virgules
-      notes: notes,
-      attachments: attachments,
+      status,
+      dueDate,
+      subtasks, // Tableau d'objets
+      notes,
+      attachments,
     };
 
+    const existingTasks = await loadTasks();
     const updatedTasks = [...existingTasks, newTask];
+    await saveTasks(updatedTasks);
+    navigation.navigate('Home', { newTask });
 
-    await saveTasks(updatedTasks); // Sauvegarde dans AsyncStorage
-    navigation.navigate('Home', { newTask }); // Mise à jour de l'écran principal
-
-    // Réinitialisation du formulaire après l'ajout
+    // Réinitialisation
     setTaskTitle('');
+    setDescription('');
     setSelectedProject('Travail');
     setSelectedTag('Important');
-    setSelectedPriority('Moyenne');
+    setSelectedPriority('medium');
+    setStatus('not_started');
     setDueDate(null);
-    setSubTasks('');
+    setSubtasks([]);
     setNotes('');
     setAttachments('');
   };
@@ -78,32 +80,34 @@ const AddTaskScreen = ({ navigation }) => {
     <ScrollView style={styles.container}>
       <Text style={styles.header}>➕ Ajouter une nouvelle tâche</Text>
 
-      {/* Saisie du titre */}
       <TextInput
         style={styles.input}
         placeholder="Titre de la tâche..."
         value={taskTitle}
         onChangeText={setTaskTitle}
       />
-
-      {/* Sélection du projet */}
+      <TextInput
+        style={[styles.input, styles.textArea]}
+        placeholder="Description"
+        value={description}
+        onChangeText={setDescription}
+        multiline
+      />
       <Text style={styles.label}>Projet :</Text>
       <Picker
         selectedValue={selectedProject}
         style={styles.picker}
-        onValueChange={(itemValue) => setSelectedProject(itemValue)}
+        onValueChange={setSelectedProject}
       >
         <Picker.Item label="Travail" value="Travail" />
         <Picker.Item label="Personnel" value="Personnel" />
         <Picker.Item label="Études" value="Études" />
       </Picker>
-
-      {/* Sélection des étiquettes */}
       <Text style={styles.label}>Étiquette :</Text>
       <Picker
         selectedValue={selectedTag}
         style={styles.picker}
-        onValueChange={(itemValue) => setSelectedTag(itemValue)}
+        onValueChange={setSelectedTag}
       >
         <Picker.Item label="Important" value="Important" />
         <Picker.Item label="Urgent" value="Urgent" />
@@ -111,28 +115,32 @@ const AddTaskScreen = ({ navigation }) => {
         <Picker.Item label="Courses" value="Courses" />
         <Picker.Item label="Appel" value="Appel" />
       </Picker>
-
-      {/* Sélection de la priorité */}
       <Text style={styles.label}>Priorité :</Text>
       <Picker
         selectedValue={selectedPriority}
         style={styles.picker}
-        onValueChange={(itemValue) => setSelectedPriority(itemValue)}
+        onValueChange={setSelectedPriority}
       >
-        <Picker.Item label="Haute" value="Haute" />
-        <Picker.Item label="Moyenne" value="Moyenne" />
-        <Picker.Item label="Basse" value="Basse" />
+        <Picker.Item label="Basse" value="low" />
+        <Picker.Item label="Moyenne" value="medium" />
+        <Picker.Item label="Haute" value="high" />
       </Picker>
-
-      {/* Sélection de l'échéance */}
+      <Text style={styles.label}>Statut :</Text>
+      <Picker
+        selectedValue={status}
+        style={styles.picker}
+        onValueChange={setStatus}
+      >
+        <Picker.Item label="Non commencé" value="not_started" />
+        <Picker.Item label="En cours" value="in_progress" />
+        <Picker.Item label="Terminé" value="completed" />
+      </Picker>
       <Text style={styles.label}>Échéance :</Text>
       <TouchableOpacity style={styles.dateButton} onPress={handleDatePicker}>
         <Text style={styles.dateButtonText}>
           {dueDate ? `Échéance : ${dueDate}` : 'Sélectionner une échéance'}
         </Text>
       </TouchableOpacity>
-
-      {/* Affichage du DateTimePicker */}
       {showDatePicker && (
         <DateTimePicker
           value={new Date()}
@@ -141,16 +149,16 @@ const AddTaskScreen = ({ navigation }) => {
           onChange={handleDateChange}
         />
       )}
-
-      {/* Sous-tâches */}
       <TextInput
         style={styles.input}
-        placeholder="Sous-tâches (séparées par des virgules)"
-        value={subTasks}
-        onChangeText={setSubTasks}
+        placeholder="Ajouter une sous-tâche (appuyer sur Entrée)"
+        onSubmitEditing={(e) => handleAddSubtask(e.nativeEvent.text)}
       />
-
-      {/* Notes */}
+      {subtasks.map((subtask) => (
+        <Text key={subtask.id} style={styles.subtask}>
+          - {subtask.title}
+        </Text>
+      ))}
       <TextInput
         style={[styles.input, styles.textArea]}
         placeholder="Notes"
@@ -158,16 +166,12 @@ const AddTaskScreen = ({ navigation }) => {
         onChangeText={setNotes}
         multiline
       />
-
-      {/* Pièces jointes */}
       <TextInput
         style={styles.input}
         placeholder="Pièces jointes (URL ou chemin)"
         value={attachments}
         onChangeText={setAttachments}
       />
-
-      {/* Bouton Ajouter */}
       <TouchableOpacity style={styles.addButton} onPress={handleAddTask}>
         <Text style={styles.addButtonText}>Ajouter la tâche</Text>
       </TouchableOpacity>
@@ -198,7 +202,7 @@ const styles = StyleSheet.create({
   },
   textArea: {
     height: 100,
-    textAlignVertical: 'top', // Pour aligner le texte en haut
+    textAlignVertical: 'top',
   },
   label: {
     fontSize: 16,
@@ -223,6 +227,11 @@ const styles = StyleSheet.create({
   dateButtonText: {
     fontSize: 16,
     color: '#333',
+  },
+  subtask: {
+    fontSize: 14,
+    color: '#777',
+    marginBottom: 4,
   },
   addButton: {
     backgroundColor: '#2ecc71',
