@@ -24,7 +24,7 @@ const AppNavigator = () => {
           name="Home"
           component={HomeScreen}
           options={{
-            title: 'Taskify',
+            title: 'FAIS LE',
             headerStyle: { backgroundColor: themeStyles.accentColor },
             headerTintColor: '#fff',
             headerTitleStyle: { fontWeight: 'bold' },

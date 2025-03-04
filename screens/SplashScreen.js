@@ -33,7 +33,7 @@ const SplashScreen = ({ navigation }) => {
       <Animated.Text
         style={[styles.appName, { opacity: fadeAnim, transform: [{ scale: scaleAnim }], color: '#ffffff' }]}
       >
-        Taskify
+        FAIS LE 
       </Animated.Text>
     </View>
   );
